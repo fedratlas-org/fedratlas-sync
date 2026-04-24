@@ -102,7 +102,7 @@ Planned integration includes:
 ### Setup
 
 ```bash
-git clone https://github.com/your-username/fedratlas-sync.git
+git clone https://github.com/fedratlas-org/fedratlas-sync.git
 cd fedratlas-sync
 
 go mod tidy
