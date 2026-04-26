@@ -14,4 +14,5 @@ type Activity struct {
 	Timestamp int64        `json:"timestamp"`
 	Actor     string       `json:"actor"`
 	Object    interface{}  `json:"object"`
+	Sent      bool         `json:"sent"` //Check Whether the activity sent to peers or not
 }

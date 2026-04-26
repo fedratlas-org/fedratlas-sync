@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"fedratlas-sync/internal/models"
@@ -21,4 +22,5 @@ func ReceiveActivity(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Activity received"))
+	log.Println("Activity received")
 }

@@ -2,9 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"net/http"
+
 	"fedratlas-sync/internal/models"
 	"fedratlas-sync/internal/service"
-	"net/http"
 )
 
 func CreateActivity(w http.ResponseWriter, r *http.Request) {
