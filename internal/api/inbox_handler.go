@@ -18,9 +18,17 @@ func ReceiveActivity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sync.AddToInbox(a)
+	added := sync.AddToInbox(a)
+
+	if !added {
+		log.Println("Duplicate activity skipped:", a.ID)
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Duplicate skipped"))
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Activity received"))
-	log.Println("Activity received")
+	log.Println("Activity received", a.ID)
 }

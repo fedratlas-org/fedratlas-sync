@@ -12,10 +12,6 @@ import (
 
 func CreateActivity(input models.Activity) (models.Activity, error) {
 	//Validation
-	/*if input.Type == "" || input.Actor == "" {
-		return models.Activity{}, errors.New("Missing required fields")
-
-	}*/
 
 	if input.Type == "" {
 		return models.Activity{}, errors.New("type is required")
@@ -26,11 +22,13 @@ func CreateActivity(input models.Activity) (models.Activity, error) {
 
 	//Create new activity (input -> New activity & adding metadata)
 	activity := models.Activity{
-		ID:        uuid.New().String(),
-		Type:      input.Type,
-		Actor:     input.Actor,
-		Object:    input.Object,
-		Timestamp: time.Now().Unix(),
+		ID:         uuid.New().String(),
+		Type:       input.Type,
+		Actor:      input.Actor,
+		Object:     input.Object,
+		Timestamp:  time.Now().Unix(),
+		Status:     models.StatusPending,
+		RetryCount: 0,
 	}
 
 	//Send to outbox

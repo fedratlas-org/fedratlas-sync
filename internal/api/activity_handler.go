@@ -29,14 +29,15 @@ func CreateActivity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var a models.Activity
+	var input models.Activity
 
-	//Decode request
-	err := json.NewDecoder(r.Body).Decode(&a)
+	//Decode request from http request
+	err := json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
+	//temporary Go object created from request body (a temporary decoded struct, Activity isn't officially created)
 
 	// below 3 added to CreateService func in service(Validation, Creation of Object - Adding metaData, Adding to OutBox)
 
@@ -54,7 +55,7 @@ func CreateActivity(w http.ResponseWriter, r *http.Request) {
 	sync.AddToOutbox(a)
 	*/
 
-	activity, err := service.CreateActivity(a)
+	activity, err := service.CreateActivity(input)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

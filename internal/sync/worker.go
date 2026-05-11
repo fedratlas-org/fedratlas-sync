@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"time"
 
+	"fedratlas-sync/internal/models"
 	"fedratlas-sync/internal/peer"
 )
 
 func StartSyncWorker() {
+	//Actually This function need to be highly change
 	go func() {
 		for {
 			processOutbox()
@@ -26,26 +28,41 @@ func processOutbox() {
 
 	for i, activity := range activities {
 
-		if activity.Sent {
+		//Skip if already sent or Failed
+		if activity.Status == models.StatusSent || activity.Status == models.StatusFailed {
 			continue
 		}
+
+		log.Println("Processing activity:", activity.ID)
 
 		success := true
 
 		for _, p := range peers {
 			err := sendToPeer(p.BaseURL, activity)
 			if err != nil {
+
+				log.Println("Failed sending to:", p.BaseURL)
+
 				success = false
+				outbox[i].RetryCount++
+
+				// max retry limit
+				if outbox[i].RetryCount >= 3 {
+					outbox[i].Status = models.StatusFailed
+				}
+				log.Println("Activity Failed for", p.ID, "")
+				continue
 			}
 		}
 
 		if success {
-			outbox[i].Sent = true
+			outbox[i].Status = models.StatusSent
+			log.Println("Activity synced:", activity.ID)
 		}
 	}
 }
 
-func sendToPeer(baseURL string, activity interface{}) error {
+func sendToPeer(baseURL string, activity models.Activity) error {
 	url := baseURL + "/inbox"
 
 	body, err := json.Marshal(activity)
