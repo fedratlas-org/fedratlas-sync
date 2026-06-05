@@ -11,8 +11,13 @@ import (
 	"fedratlas-sync/internal/peer"
 )
 
+type SyncResult struct {
+	PeerID  string
+	Success bool
+	Error   error
+}
+
 func StartSyncWorker() {
-	//Actually This function need to be highly change
 	go func() {
 		for {
 			processOutbox()
@@ -35,26 +40,84 @@ func processOutbox() {
 
 		log.Println("Processing activity:", activity.ID)
 
-		success := true
+		results := make(chan SyncResult)
+		pendingCount := 0
 
-		for _, p := range peers {
-			err := sendToPeer(p.BaseURL, activity)
-			if err != nil {
+		for _, delivery := range activity.Deliveries {
 
-				log.Println("Failed sending to:", p.BaseURL)
-
-				success = false
-				outbox[i].RetryCount++
-
-				// max retry limit
-				if outbox[i].RetryCount >= 3 {
-					outbox[i].Status = models.StatusFailed
-				}
-				log.Println("Activity Failed for", p.ID, "")
+			if delivery.Status == "SENT" {
 				continue
 			}
+
+			if delivery.RetryCount >= 3 {
+				continue
+			}
+
+			//In below func we could only get the peerID as the parameter But It could be a problem in future
+			//That's why we didn't do it
+			go func(peerID string, peerBaseURL string) {
+				err := sendToPeer(peerBaseURL, activity)
+
+				results <- SyncResult{
+					PeerID:  peerID,
+					Success: err == nil,
+					Error:   err,
+				}
+
+				pendingCount++
+			}(delivery.PeerID, peers[delivery.PeerID].BaseURL)
 		}
 
+		//Below Part is for increment Retry Count and Mark as sent
+		success := true
+
+		for range pendingCount {
+			result := <-results
+
+			if !result.Success {
+
+				success = false
+
+				//outbox[i].RetryCount++
+				IncrementDeliveryRetry(activity.ID, result.PeerID)
+
+				log.Println("Failed:", result.PeerID)
+
+				/*if outbox[i].RetryCount >= 3 {
+					outbox[i].Status = models.StatusFailed
+					log.Println("Activity Failed for", result.PeerID, "")
+					continue
+				}*/
+
+				continue
+
+			}
+
+			MarkDeliverySent(activity.ID, result.PeerID)
+		}
+
+		/*for range peers {
+
+			result := <-results
+
+			if !result.Success {
+
+				success = false
+
+				outbox[i].RetryCount++
+
+				log.Println("Failed:", result.PeerID)
+
+				if outbox[i].RetryCount >= 3 {
+					outbox[i].Status = models.StatusFailed
+
+					log.Println("Activity Failed for", result.PeerID, "")
+					continue
+				}
+
+			}
+		}*/
+		//This is not needed in this point But I still keeps it :)
 		if success {
 			outbox[i].Status = models.StatusSent
 			log.Println("Activity synced:", activity.ID)
@@ -65,6 +128,7 @@ func processOutbox() {
 func sendToPeer(baseURL string, activity models.Activity) error {
 	url := baseURL + "/inbox"
 
+	//marshals models.Activity to json object
 	body, err := json.Marshal(activity)
 	if err != nil {
 		log.Println("Failed to marshal:", err)
