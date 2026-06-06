@@ -100,3 +100,19 @@ func MarkDeliverySent(
 
 	delivery.Status = models.DeliveryFailed
 }*/
+
+func IsActivityFullyDelivered(activityID string) bool {
+	activity := findActivity(activityID)
+
+	if activity == nil {
+		return false
+	}
+
+	for _, delivery := range activity.Deliveries {
+		if delivery.Status != models.DeliverySent {
+			return false
+		}
+	}
+
+	return true
+}

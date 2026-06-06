@@ -28,8 +28,8 @@ func CreateActivity(input models.Activity) (models.Activity, error) {
 		Actor:      input.Actor,
 		Object:     input.Object,
 		Timestamp:  time.Now().Unix(),
-		Status:     models.StatusPending, //Need to be removed when Deliveries Successfully implemented
-		RetryCount: 0,                    //Need to be removed when Deliveries Successfully implemented
+		Status:     models.StatusPending,
+		RetryCount: 0,
 
 		Deliveries: buildDeliveries(),
 	}

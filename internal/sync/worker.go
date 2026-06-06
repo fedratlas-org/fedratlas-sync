@@ -37,6 +37,7 @@ func processOutbox() {
 		if activity.Status == models.StatusSent || activity.Status == models.StatusFailed {
 			continue
 		}
+		//need to keep this because if the activity sent to all peers there is no use of checking them one by one
 
 		log.Println("Processing activity:", activity.ID)
 
@@ -45,13 +46,11 @@ func processOutbox() {
 
 		for _, delivery := range activity.Deliveries {
 
-			if delivery.Status == "SENT" {
+			if delivery.Status != models.DeliveryPending {
 				continue
 			}
 
-			if delivery.RetryCount >= 3 {
-				continue
-			}
+			pendingCount++
 
 			//In below func we could only get the peerID as the parameter But It could be a problem in future
 			//That's why we didn't do it
@@ -64,19 +63,18 @@ func processOutbox() {
 					Error:   err,
 				}
 
-				pendingCount++
 			}(delivery.PeerID, peers[delivery.PeerID].BaseURL)
 		}
 
 		//Below Part is for increment Retry Count and Mark as sent
-		success := true
+		//success := true
 
 		for range pendingCount {
 			result := <-results
 
 			if !result.Success {
 
-				success = false
+				//success = false
 
 				//outbox[i].RetryCount++
 				IncrementDeliveryRetry(activity.ID, result.PeerID)
@@ -117,10 +115,16 @@ func processOutbox() {
 
 			}
 		}*/
-		//This is not needed in this point But I still keeps it :)
-		if success {
+
+		if IsActivityFullyDelivered(activity.ID) {
 			outbox[i].Status = models.StatusSent
 			log.Println("Activity synced:", activity.ID)
+		}
+
+		//This part need to improve
+		activities[i].RetryCount++
+		if activities[i].RetryCount >= 5 {
+			activities[i].Status = models.StatusFailed
 		}
 	}
 }
