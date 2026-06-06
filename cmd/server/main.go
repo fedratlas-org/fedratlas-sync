@@ -2,8 +2,10 @@ package main
 
 import (
 	"fedratlas-sync/internal/api"
+	"fedratlas-sync/internal/sync"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -22,9 +24,19 @@ func main() {
 	r.Post("/activities", api.CreateActivity)
 	r.Post("/inbox", api.ReceiveActivity)
 
-	log.Println("Server running on :8080")
+	sync.StartSyncWorker()
 
-	err := http.ListenAndServe(":8080", r)
+	var port string
+
+	port = os.Getenv("PORT")
+
+	if port == "" {
+		port = "8080"
+	}
+	
+	log.Println("Server running on :", port)
+
+	err := http.ListenAndServe((":" + port), r)
 	if err != nil {
 		//This need to change (log.Fatal)
 		log.Fatal(err)

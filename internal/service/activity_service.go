@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fedratlas-sync/internal/peer"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,10 +13,6 @@ import (
 
 func CreateActivity(input models.Activity) (models.Activity, error) {
 	//Validation
-	/*if input.Type == "" || input.Actor == "" {
-		return models.Activity{}, errors.New("Missing required fields")
-
-	}*/
 
 	if input.Type == "" {
 		return models.Activity{}, errors.New("type is required")
@@ -26,15 +23,38 @@ func CreateActivity(input models.Activity) (models.Activity, error) {
 
 	//Create new activity (input -> New activity & adding metadata)
 	activity := models.Activity{
-		ID:        uuid.New().String(),
-		Type:      input.Type,
-		Actor:     input.Actor,
-		Object:    input.Object,
-		Timestamp: time.Now().Unix(),
+		ID:         uuid.New().String(),
+		Type:       input.Type,
+		Actor:      input.Actor,
+		Object:     input.Object,
+		Timestamp:  time.Now().Unix(),
+		Status:     models.StatusPending,
+		RetryCount: 0,
+
+		Deliveries: buildDeliveries(),
 	}
 
 	//Send to outbox
 	sync.AddToOutbox(activity)
 
 	return activity, nil
+}
+
+// below Function is responsible for adding all the peers to activity.Deliveries when activity get created
+func buildDeliveries() []models.PeerDelivery {
+
+	peers := peer.GetPeers()
+
+	deliveries := []models.PeerDelivery{}
+
+	for _, p := range peers {
+
+		deliveries = append(deliveries, models.PeerDelivery{
+			PeerID:     p.ID,
+			Status:     models.DeliveryPending,
+			RetryCount: 0,
+		})
+	}
+
+	return deliveries
 }
